@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mission vacances : gérer mon budget</title>
+<style>
+:root{--bg:#fff8f0;--card:#fff;--tx:#2a2233;--mut:#6f6580;--pri:#7c3aed;--pri2:#ec4899;--ok:#15803d;--ko:#c2410c;--bd:#eadff5;--warn:#fff1e0;--good:#e8f8ee;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17131f;--card:#241d30;--tx:#f3eefb;--mut:#b2a6c4;--bd:#3a2f4d;--warn:#3b2616;--good:#16301f;--ok:#4ade80;--ko:#fb923c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#17131f;--card:#241d30;--tx:#f3eefb;--mut:#b2a6c4;--bd:#3a2f4d;--warn:#3b2616;--good:#16301f;--ok:#4ade80;--ko:#fb923c;color-scheme:dark}
+*{box-sizing:border-box}html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--tx);font-family:"Segoe UI",system-ui,-apple-system,Roboto,sans-serif;line-height:1.45}
+.w{max-width:640px;margin:0 auto;padding:14px}
+h1{font-size:1.35rem;margin:6px 0 2px;background:linear-gradient(90deg,var(--pri),var(--pri2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.sub{color:var(--mut);font-size:.88rem;margin:0 0 10px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:14px;margin:10px 0;box-shadow:0 2px 10px rgba(124,58,237,.08)}
+.bar{height:8px;background:var(--bd);border-radius:9px;overflow:hidden;margin:6px 0 2px}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--pri),var(--pri2));transition:width .4s}
+.tag{font-size:.8rem;font-weight:700;color:var(--pri);margin-bottom:4px}
+table{width:100%;border-collapse:collapse;font-size:.9rem;margin-bottom:8px}
+caption{text-align:left;font-weight:800;padding:2px 0 4px}
+td{padding:6px 4px;border-bottom:1px dashed var(--bd);vertical-align:middle}
+tr:last-child td{border:0}
+td small{display:block;color:var(--mut);font-size:.72rem}
+td.v{text-align:right;font-weight:700;white-space:nowrap}
+tr.k td{font-size:1rem;color:var(--pri)}
+.up{color:var(--ok)}.dn{color:var(--ko)}
+.q{font-size:1.08rem;font-weight:700;margin:2px 0 10px}
+.o{display:block;width:100%;text-align:left;background:var(--card);color:var(--tx);border:2px solid var(--bd);border-radius:14px;padding:12px;margin:8px 0;font:inherit;font-size:.97rem;cursor:pointer}
+.o:hover,.o:focus-visible{border-color:var(--pri)}
+.msg{border-radius:12px;padding:10px 12px;margin:8px 0;font-size:.93rem}
+.g{background:var(--good)}.w2{background:var(--warn)}
+.btn{display:block;width:100%;border:0;border-radius:14px;padding:13px;font:inherit;font-weight:700;color:#fff;background:linear-gradient(90deg,var(--pri),var(--pri2));cursor:pointer;margin-top:10px}
+.zg{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px}.zn{text-align:left;background:var(--card);color:var(--tx);border:2px dashed var(--bd);border-radius:14px;padding:10px;font:inherit;font-size:.88rem;cursor:pointer;min-height:84px}.zn:not(:disabled):hover{border-color:var(--pri)}.zn small{display:block;color:var(--mut);font-weight:400}.tl{display:block;font-size:.78rem;margin-top:4px;border-radius:8px;padding:3px 6px;background:var(--good)}.o.sel{border-color:var(--pri);background:var(--warn)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.chip{font-size:.78rem;border:1px solid var(--bd);border-radius:20px;padding:3px 9px}
+.big{font-size:1.5rem;font-weight:800;text-align:center;margin:4px 0}
+textarea{width:100%;font:inherit;font-size:.9rem;color:var(--tx);background:var(--bg);border:2px solid var(--bd);border-radius:12px;padding:10px;margin:6px 0}
+ul{padding-left:18px;margin:6px 0}
+</style>
+</head>
+<body>
+<div class="w">
+<h1>🏖️ Mission vacances : gérer mon budget</h1>
+<p class="sub">Une semaine à la mer à 4 amis : 1 000 € chacun dans la cagnotte, soit 4 000 € à gérer. Chaque décision a des répercussions : surveille le tableau de bord !</p>
+<div class="card" id="dash"></div>
+<div id="main"></div>
+</div>
+<script>
+var $=function(x){return document.getElementById(x)};
+var f=function(n){return (n<0?"−":"")+Math.abs(Math.round(n)).toLocaleString("fr-FR")+" €"};
+var S0={ca:4000,fix:0,vr:0,pr:0,loan:0,rep:0,inv:0},s,i,cur,last,log,used,amt;
+function calc(x){var sd=x.ca-x.fix-x.vr-x.pr;return{ca:x.ca,fix:x.fix,vr:x.vr,pr:x.pr,sd:sd,tr:sd+x.loan-x.rep-x.inv,dt:x.loan-x.rep,inv:x.inv}}
+var rows=[["ca","Budget (chiffre d’affaires)","cagnotte de départ + ventes",1],["fix","Charges fixes","ne changent pas, ex. le logement",1],["vr","Charges variables","dépendent de ce que je consomme",1],["pr","Prime","remercier quelqu’un",0],["sd","Solde = budget − charges","c’est le résultat",1],["tr","Trésorerie (actif du bilan)","l’argent réellement disponible",1],["dt","Dettes","ce qu’il faudra rendre",0],["inv","Investi","souvenirs et activités",0]];
+var BAD={fix:1,vr:1,pr:1,dt:1};
+function dash(){var a=calc(s),h="<table>";rows.forEach(function(r){if(!r[3]&&!a[r[0]])return;var neg=(r[0]=="sd"||r[0]=="tr")&&a[r[0]]<0;h+="<tr"+(r[0]=="sd"?" class=\"k\"":"")+"><td>"+r[1]+"<small>"+r[2]+"</small></td><td class=\"v"+(neg?" dn":"")+"\">"+f(a[r[0]])+"</td></tr>"});$("dash").innerHTML=h+"</table>"}
+function chips(b,a){var h="<div class=\"chips\">";rows.forEach(function(r){var d=a[r[0]]-b[r[0]];if(d){var good=BAD[r[0]]?d<0:d>0;h+="<span class=\"chip "+(good?"up":"dn")+"\">"+r[1].split(" (")[0].split(" =")[0]+" "+(d>0?"▲ +":"▼ −")+f(Math.abs(d)).replace("−","")+"</span>"}});return h+"</div>"}
+var P1="Phase 1 · Je prépare mon budget",P2="Phase 2 · Solde négatif : que faire ?",P3="Phase 3 · Solde positif : que faire ?",PB="Manche bonus · Le puzzle";
+var SC=[
+{p:P1,q:"Avant de partir, quelle est la première question à te poser ?",o:[
+ {t:"💰 Combien d’argent j’ai pour la semaine et qu’est-ce que j’ai prévu de faire ?",fx:{},m:"Bonne réponse. Un budget, c’est un plan d’argent : ce qui rentre (ici 4 000 €, soit 4 × 1 000 € dans la cagnotte, appelé chiffre d’affaires dans une entreprise) et ce que tu prévois de dépenser (les charges).",w:"Cette cagnotte est de l’argent disponible : c’est ta trésorerie, à l’actif du bilan. Faire ce plan avant de partir s’appelle un prévisionnel : sans lui, on découvre à la fin qu’il ne reste plus rien."},
+ {t:"🧳 Quelles valises prendre ?",fx:{},m:"Utile, mais ça ne coûte rien de décider.",w:"Ce qui conditionne tout le reste, c’est ton budget : 4 000 € pour la semaine. Chaque choix qui suit va le faire bouger."},
+ {t:"🎵 Quelle playlist mettre dans la voiture ?",fx:{},m:"Super idée pour la route !",w:"Mais avant, il faut savoir de combien d’argent vous disposez : un budget de 4 000 €. Chaque choix qui suit va le faire bouger."}]},
+{p:P1,q:"Où dormez-vous ? Le logement se paie une fois pour la semaine, quoi que vous fassiez ensuite.",o:[
+ {t:"🏡 Un gîte avec piscine (1 600 €)",fx:{fix:1600},m:"C’est une charge fixe : 1 600 € quoi qu’il arrive, que vous y passiez 1 jour ou 7.",w:"⚠ Beaucoup de confort, mais 40 % du budget est déjà engagé."},
+ {t:"🏢 Un appartement simple (1 400 €)",fx:{fix:1400},m:"Charge fixe de 1 400 € : le prix ne bouge pas, même si vous êtes peu sur place.",w:"Un bon équilibre entre confort et budget."},
+ {t:"⛺ Un camping, 2 bungalows (1 200 €)",fx:{fix:1200},m:"Charge fixe de 1 200 € : il vous reste plus de marge pour le reste.",w:"⚠ Moins de confort, et la météo compte."}]},
+{p:P1,q:"Comment partez-vous ? L’essence dépend des kilomètres : c’est une charge variable.",o:[
+ {t:"🚐 Location d’un minibus confortable (650 €)",fx:{vr:650},m:"Location, essence et péage : 650 € de charges variables. Le péage est une taxe.",w:"⚠ Confort maximum, mais +200 € par rapport à la formule la moins chère."},
+ {t:"🚗 Location d’une petite voiture (500 €)",fx:{vr:500},m:"500 € de charges variables : location, essence et péage.",w:"⚠ À quatre, les bagages vont serrer."},
+ {t:"🚙 La voiture d’un ami, on partage l’essence (450 €)",fx:{vr:450},m:"450 € d’essence et de péage partagés : la formule la moins chère.",w:"⚠ Pas de plan B si la voiture a un souci."}]},
+{p:P1,q:"Et pour manger ? Plus on mange au restaurant, plus la charge variable monte.",o:[
+ {t:"🍽️ Restaurant tous les jours (800 €)",fx:{vr:800},m:"800 € de nourriture : agréable, mais c’est le plus gros poste variable.",w:"⚠ Il va falloir surveiller le reste du budget."},
+ {t:"🥗 Un peu de courses, un peu de restaurant (700 €)",fx:{vr:700},m:"700 € de charges variables : un bon compromis.",w:"Vous gardez de la marge pour les activités."},
+ {t:"🔥 Courses et barbecue (600 €)",fx:{vr:600},m:"600 € : vous maîtrisez vos charges.",w:"⚠ Il faudra cuisiner à tour de rôle."}]},
+{p:P1,q:"Et pour les sorties ? Chacune est une charge variable : vous décidez combien en faire.",o:[
+ {t:"🎢 Parc d’attractions et jet-ski (500 €)",fx:{vr:500},m:"500 € de sorties : des souvenirs inoubliables.",w:"⚠ C’est un poste lourd, qui pèse vite sur le budget."},
+ {t:"🚴 Quelques activités choisies (350 €)",fx:{vr:350},m:"350 € : vous vous faites plaisir sans vider la cagnotte.",w:"Un bon équilibre."},
+ {t:"🏖️ Plage et balades presque gratuites (250 €)",fx:{vr:250},m:"250 € seulement : peu de charges.",w:"⚠ Un séjour plus calme."}]},
+{p:P1,q:"Dernier poste : les cadeaux et souvenirs. C’est un plaisir, mais pas une obligation.",o:[
+ {t:"🎁 Beaucoup de cadeaux (200 €)",fx:{vr:200},m:"200 € de charges variables en plus.",w:"⚠ Ce poste-là est le premier à couper si le budget dérape."},
+ {t:"🐚 Quelques souvenirs (100 €)",fx:{vr:100},m:"100 € : raisonnable.",w:"Vous gardez votre budget sous contrôle."},
+ {t:"📸 Un seul souvenir pour le groupe (50 €)",fx:{vr:50},m:"50 € : presque rien en plus.",w:"Économique, mais moins de souvenirs à ramener."}]},
+{k:"rec"},{k:"evt"},{k:"fix"},{k:"sur"},{k:"puz"},{k:"end"}];
+var FIX=[
+ {id:"b",t:"🧇 Vendre des beignets sur la plage",fx:{ca:1000,vr:210},m:"Vous augmentez le budget (le chiffre d’affaires) de 1 000 €. Ça rapporte !",w:"⚠ Mais les ingrédients coûtent 210 € de charges : le gain net est de 790 €."},
+ {id:"r",t:"✂️ Recalculer le budget et supprimer des dépenses",fx:{vr:-490},m:"Vous diminuez les charges de 490 € : moins de sorties, plus de repas à la maison, moins de souvenirs. Le solde s’améliore.",w:"⚠ Le séjour sera moins festif."},
+ {id:"e",t:"📞 Appeler les parents pour un prêt de 800 €",fx:{loan:800},m:"Vous avez 800 € de plus en poche. C’est un emprunt.",w:"⚠ Ce n’est pas un gain : le solde ne change pas, et une dette de 800 € apparaît. Il faudra la rembourser."}];
+var PZ=[["🚗 La voiture pour y aller",0,"Un bien que tu possèdes et qui sert plusieurs fois : une immobilisation, à l’actif du bilan."],
+["💰 La cagnotte de 4 000 €",0,"De l’argent disponible : la trésorerie, à l’actif du bilan."],
+["🤝 Le prêt de mes parents",1,"Tu dois le rendre : une dette, au passif du bilan."],
+["🧾 La facture du gîte pas encore payée",1,"Tu dois encore cet argent : une dette envers un fournisseur, au passif du bilan."],
+["🧇 La vente de beignets",2,"De l’argent qui rentre grâce à une vente : du chiffre d’affaires."],
+["🍋 La vente de limonade",2,"Encore une vente : du chiffre d’affaires."],
+["⛽ L’essence",3,"Une dépense consommée : une charge, au compte de résultat."],
+["🍽️ Le resto offert au conducteur",3,"Une dépense de remerciement : une charge, comme une prime dans une entreprise."]];
+var ZN=["Bilan · Actif<small>ce que je possède</small>","Bilan · Passif<small>ce que je dois</small>","Compte de résultat · CA<small>ce qui rentre</small>","Compte de résultat · Charges<small>ce qui sort</small>"];
+var pz,pzp=null;
+function add(fx){for(var k in fx)s[k]+=fx[k]}
+function intro(){s=JSON.parse(JSON.stringify(S0));i=0;log=[];used=[];pzp=null;dash();$("main").innerHTML="<div class=\"card\"><div class=\"tag\">Briefing</div><p>Vous partez une semaine à la mer à 4 amis. Chacun met <b>1 000 €</b> dans la cagnotte : vous démarrez avec <b>4 000 €</b> en trésorerie (à l’actif du bilan). Tu gères ce budget comme le patron d’un magasin, en 3 phases : préparer le budget, résoudre un solde négatif, décider quoi faire d’un solde positif. Une manche bonus (un puzzle) clôt le jeu.</p><p>Objectif : finir avec un <b>solde positif</b> et le moins de <b>dettes</b> possible. Durée : environ 15 minutes.</p><button class=\"btn\" onclick=\"show()\">C’est parti 🚀</button></div>"}
+function head(p){return "<div class=\"tag\">"+p+"</div><div class=\"bar\"><i style=\"width:"+(i*100/SC.length)+"%\"></i></div>"}
+function show(){var sc=SC[i];window.scrollTo(0,0);if(sc.k)return SP[sc.k](sc);cur=sc;ask(sc.p,sc.q,sc.o)}
+function ask(p,q,o){var h="<div class=\"card\">"+head(p)+"<div class=\"q\">"+q+"</div>";o.forEach(function(x,k){h+="<button class=\"o\" onclick=\"pick("+k+")\">"+x.t+"</button>"});$("main").innerHTML=h+"</div>"}
+function pick(k){var o=cur.o[k],b=calc(s),fx=typeof o.fx=="function"?o.fx():o.fx;add(fx);if(o.id)used.push(o.id);log.push(o.t.replace(/ \([\d ]+ €\)/,""));var a=calc(s);dash();
+ $("main").innerHTML="<div class=\"card\"><div class=\"tag\">Répercussions</div><div class=\"q\">"+o.t+"</div><div class=\"msg g\">✅ "+o.m+"</div><div class=\"msg w2\">"+o.w+"</div>"+chips(b,a)+"<button class=\"btn\" onclick=\"nxt()\">Suite →</button></div>";window.scrollTo(0,0)}
+function nxt(){if(SC[i].k=="fix"&&calc(s).sd<0&&used.length<FIX.length){show();return}i++;show()}
+function pzDraw(){var h="<div class=\"card\">"+head(PB)+"<div class=\"q\">Range chaque élément au bon endroit</div><p style=\"margin:0 0 8px;color:var(--mut);font-size:.9rem\">Touche un élément, puis la case où il va. Tu peux aussi toucher « Voir la réponse ».</p><div class=\"zg\">",n=0;
+ for(var z=0;z<4;z++){h+="<button class=\"zn\" "+(pz.sel<0?"disabled":"")+" onclick=\"zp("+z+")\"><b>"+ZN[z]+"</b>";PZ.forEach(function(p,k){if(pz.pl[k]){if(p[1]==z)h+="<span class=\"tl\">"+p[0]+"</span>"}});h+="</button>"}
+ h+="</div>";PZ.forEach(function(p,k){if(pz.pl[k])n++;else h+="<button class=\"o"+(pz.sel==k?" sel":"")+"\" onclick=\"pzSel("+k+")\">"+p[0]+"</button>"});
+ if(pz.sel>=0)h+="<button class=\"o\" onclick=\"pzHint()\">💡 Voir la réponse</button>";
+ if(pz.msg)h+="<div class=\"msg "+pz.cl+"\">"+pz.msg+"</div>";
+ if(n==PZ.length){pzp=pz.pts;h+="<div class=\"big\">Bonus : "+pz.pts+" / "+PZ.length+"</div><button class=\"btn\" onclick=\"i++;show()\">Voir le bilan de ma semaine →</button>"}
+ $("main").innerHTML=h+"</div>"}
+function pzSel(k){pz.sel=k;pz.msg="";pzDraw()}
+function zp(z){var k=pz.sel,p=PZ[k];if(z==p[1]){if(!pz.tr[k])pz.pts++;pz.pl[k]=1;pz.sel=-1;pz.msg="✅ "+p[2];pz.cl="g"}else{pz.tr[k]=1;pz.msg="❌ Pas tout à fait. Essaie une autre case, ou touche « Voir la réponse ».";pz.cl="w2"}pzDraw()}
+function pzHint(){var k=pz.sel,p=PZ[k];pz.tr[k]=1;pz.pl[k]=1;pz.sel=-1;pz.msg="💡 Réponse : "+ZN[p[1]].replace("<small>"," (").replace("</small>",")")+". "+p[2];pz.cl="g";pzDraw()}
+var SP={
+rec:function(){var a=calc(s);$("main").innerHTML="<div class=\"card\">"+head(P1)+"<div class=\"q\">Ton prévisionnel est prêt</div><p>Budget : <b>"+f(a.ca)+"</b><br>Charges fixes : <b>"+f(a.fix)+"</b> · charges variables : <b>"+f(a.vr)+"</b><br>Solde prévu : <b class=\""+(a.sd<0?"dn":"up")+"\">"+f(a.sd)+"</b></p><div class=\"msg "+(a.sd<0?"w2":"g")+"\">"+(a.sd<0?"⚠ Vous prévoyez de dépenser plus que votre budget : le solde est déjà négatif avant de partir.":"✅ Vous prévoyez de dépenser moins que votre budget : il reste de la marge. Mais un imprévu peut vite la consommer…")+"</div><p style=\"color:var(--mut)\">Règle à retenir : <b>budget − charges = solde</b>. C’est la même règle dans un magasin : chiffre d’affaires − charges = résultat.</p><button class=\"btn\" onclick=\"i++;show()\">Partir en vacances →</button></div>"},
+evt:function(){cur={o:[{t:"😱 Payer les frais",fx:{vr:1500},m:"1 500 € de charges imprévues : les imprévus font partie de la vie d’un budget.",w:"⚠ Une charge que vous n’aviez pas prévue : le solde passe en négatif."}]};$("main").innerHTML="<div class=\"card\">"+head(P2)+"<div class=\"q\">Jour 3 : accident de voiture !</div><p>Franchise, remorquage et 2 nuits d’hôtel : <b>1 500 €</b> à payer tout de suite.</p><button class=\"o\" onclick=\"pick(0)\">"+cur.o[0].t+"</button></div>"},
+fix:function(){if(calc(s).sd>=0){i++;return show()}var l=FIX.filter(function(x){return used.indexOf(x.id)<0});cur={o:l};ask(P2,"Votre solde est négatif : "+f(calc(s).sd)+". Vous avez dépensé plus que votre budget. Que faites-vous ?",l)},
+sur:function(){var a=calc(s);amt=Math.round(a.sd);if(amt<=0){i++;return show()}var o=[
+ {t:"🎁 Dépenser en souvenirs et activités (investir)",fx:function(){return{inv:amt}},m:"Vous investissez "+f(amt)+" : l’argent devient des souvenirs et des activités. Dans un magasin, ce serait du matériel ou des travaux.",w:"⚠ Cet argent n’est plus disponible comme réserve."},
+ {t:"🐷 Mettre de côté pour les vacances de l’an prochain",fx:{},m:"Vous placez "+f(amt)+" en trésorerie : une réserve prête pour un imprévu ou un futur projet.",w:"💡 Il ne rapporte rien tout de suite, mais il vous protège."},
+ {t:"🍽️ Offrir un resto à l’ami qui a conduit",fx:function(){return{pr:amt}},m:"Vous remerciez celui qui a rendu service. Dans une entreprise, ce serait une prime ou une augmentation.",w:"⚠ C’est une charge de plus : le solde passe à 0 €."}];
+ if(a.dt>0)o.push({t:"🤝 Rembourser mes parents",fx:function(){return{rep:Math.min(calc(s).dt,calc(s).tr)}},m:"Vous remboursez votre dette : la trésorerie baisse, mais la dette aussi.",w:"💡 Le solde ne change pas : rembourser n’est pas une charge, c’est rendre de l’argent emprunté."});
+ cur={o:o};ask(P3,"Dernier jour : votre solde est redevenu positif : "+f(amt)+". Qu’en faites-vous ?",o)},
+puz:function(){pz={sel:-1,pl:{},tr:{},pts:0,msg:"",cl:""};pzDraw()},
+end:function(){var a=calc(s),t=a.sd>=0&&a.dt==0?"🏆 Gestionnaire malin":(a.sd>=0?"👍 Solde positif, mais des dettes à rembourser":"😬 À retravailler"),
+ txt="Mission vacances : solde "+f(a.sd)+", argent en poche "+f(a.tr)+", dettes "+f(a.dt)+(pzp!==null?", puzzle bonus "+pzp+"/"+PZ.length:"")+"\nMes choix : "+log.join(" ; ");
+ $("main").innerHTML="<div class=\"card\"><div class=\"tag\">Bilan de votre semaine</div><div class=\"big\">"+t+"</div><p style=\"text-align:center\">"+f(a.ca)+" de budget − "+f(a.fix+a.vr+a.pr)+" de charges = solde de <b>"+f(a.sd)+"</b></p>"+
+ "<table><caption>Compte de résultat : ce qui rentre et ce qui sort</caption><tr><td>Chiffre d’affaires</td><td class=\"v\">"+f(a.ca)+"</td></tr><tr><td>Charges fixes</td><td class=\"v\">"+f(a.fix)+"</td></tr><tr><td>Charges variables"+(a.pr?" et prime":"")+"</td><td class=\"v\">"+f(a.vr+a.pr)+"</td></tr><tr class=\"k\"><td>Résultat</td><td class=\"v\">"+f(a.sd)+"</td></tr></table>"+
+ "<table><caption>Bilan : ce que je possède et ce que je dois</caption><tr><td>Actif : trésorerie"+(a.inv?" + investi":"")+"</td><td class=\"v\">"+f(a.tr+a.inv)+"</td></tr><tr><td>Passif : dettes + résultat</td><td class=\"v\">"+f(a.dt+a.sd)+"</td></tr></table><p style=\"color:var(--mut);font-size:.85rem\">Actif = Passif : le bilan est toujours équilibré. Sans le savoir, vous venez de faire un compte de résultat et un bilan.</p>"+
+ "<div class=\"msg g\"><b>Ce qu’il faut retenir</b><ul><li>Un <b>budget</b> est un plan : ce qui rentre (chiffre d’affaires) et ce que je prévois de dépenser (charges).</li><li>Les charges <b>fixes</b> ne bougent pas, les charges <b>variables</b> dépendent de ce qu’on consomme.</li><li><b>Chiffre d’affaires − charges = résultat</b>. Négatif : augmenter le CA, baisser les charges ou emprunter (une dette). Positif : investir, mettre de côté ou récompenser.</li><li>Un emprunt n’est pas un gain : il crée une dette. Avant de dépenser, on regarde sa capacité financière.</li></ul></div>"+
+ "<p><b>Ce que j’ai retenu</b> (une phrase) :</p><textarea id=\"ret\" rows=\"2\" oninput=\"upd()\"></textarea><textarea id=\"res\" rows=\"4\" readonly></textarea><button class=\"btn\" onclick=\"cp()\">📋 Copier mon résumé pour le debrief</button><p id=\"cpm\" style=\"color:var(--mut)\"></p><button class=\"btn\" onclick=\"intro()\">🔄 Rejouer avec d’autres choix</button></div>";window.SM=txt;upd()}};
+function upd(){$("res").value=window.SM+"\nCe que j’ai retenu : "+$("ret").value}
+function cp(){var t=$("res");try{navigator.clipboard.writeText(t.value).then(function(){$("cpm").textContent="Résumé copié."},function(){alt()})}catch(e){alt()}function alt(){try{t.select();document.execCommand("copy");$("cpm").textContent="Résumé copié."}catch(e2){$("cpm").textContent="Sélectionne le texte et copie-le à la main."}}}
+intro();
+</script>
+</body>
+</html>
